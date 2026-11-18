@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src https://api.github.com; img-src 'self' data: https://avatars.githubusercontent.com; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="theme-color" content="#0f172a">
+  <title>pwrsr-work</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="logo">◆</span> pwrsr-work</div>
+    <div class="top-actions">
+      <button id="btn-refresh" class="icon-btn" title="Refresh" aria-label="Refresh">↻</button>
+      <button id="btn-settings" class="icon-btn" title="Settings" aria-label="Settings">⚙</button>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab active" data-view="tasks">งาน</button>
+    <button class="tab" data-view="new">+ สั่งงาน</button>
+    <button class="tab" data-view="runs">Runs</button>
+  </nav>
+
+  <main>
+    <div id="banner" class="banner hidden" role="status"></div>
+
+    <!-- Settings -->
+    <section id="view-settings" class="view hidden">
+      <h2>ตั้งค่า</h2>
+      <p class="muted">ข้อมูลนี้เก็บไว้แค่ในเบราว์เซอร์ของเครื่องนี้ ไม่ถูกส่งไปที่ไหนนอกจาก <code>api.github.com</code></p>
+      <label>Repository (owner/name)
+        <input id="in-repo" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="your-name/personal-ai-agent">
+      </label>
+      <label>Fine-grained token
+        <input id="in-token" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_...">
+      </label>
+      <details class="help">
+        <summary>วิธีสร้าง token (ทำครั้งเดียว)</summary>
+        <ol>
+          <li>GitHub → Settings → Developer settings → <b>Fine-grained tokens</b> → Generate new token</li>
+          <li>Repository access: <b>Only select repositories</b> → เลือก repo ของ agent</li>
+          <li>Permissions: <b>Issues: Read and write</b>, Pull requests: Read, Actions: Read, Contents: Read</li>
+          <li>ตั้งวันหมดอายุ (เช่น 90 วัน) แล้วคัดลอก token มาวางที่นี่</li>
+        </ol>
+      </details>
+      <div class="row">
+        <button id="btn-save" class="primary">บันทึก</button>
+        <button id="btn-forget" class="danger">ลบ token จากเครื่องนี้</button>
+      </div>
+    </section>
+
+    <!-- Task list -->
+    <section id="view-tasks" class="view">
+      <div id="task-list" class="list"></div>
+    </section>
+
+    <!-- Task detail -->
+    <section id="view-detail" class="view hidden">
+      <button id="btn-back" class="link">← กลับ</button>
+      <div id="detail"></div>
+      <form id="form-followup" class="card">
+        <label>สั่งแก้เพิ่ม (จะ comment <code>/agent ...</code>)
+          <textarea id="in-followup" rows="3" required placeholder="เช่น เพิ่ม test กรณี list ว่าง"></textarea>
+        </label>
+        <button class="primary" type="submit">ส่งให้ agent ทำต่อ</button>
+      </form>
+    </section>
+
+    <!-- New task -->
+    <section id="view-new" class="view hidden">
+      <h2>สั่งงานใหม่</h2>
+      <form id="form-new">
+        <label>หัวข้อ
+          <input id="in-title" required maxlength="200" placeholder="แก้ total_price ให้คูณ qty">
+        </label>
+        <label>รายละเอียด
+          <textarea id="in-body" rows="8" placeholder="ไฟล์ไหน, ผลที่ต้องการ, ข้อห้าม, ต้องมี test อะไรบ้าง"></textarea>
+        </label>
+        <p class="muted">ระบบจะสร้าง Issue พร้อม label <code>agent</code> แล้ว GitHub Actions จะเริ่มทำงาน (ใช้เวลาประมาณ 5–30 นาที)</p>
+        <button class="primary" type="submit">สั่งงาน</button>
+      </form>
+    </section>
+
+    <!-- Runs -->
+    <section id="view-runs" class="view hidden">
+      <div id="run-list" class="list"></div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
