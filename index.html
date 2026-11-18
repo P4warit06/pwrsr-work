@@ -45,7 +45,7 @@
       <h2>ตั้งค่า</h2>
       <div class="card">
       <p class="muted">ข้อมูลนี้เก็บไว้แค่ในเบราว์เซอร์ของเครื่องนี้ ไม่ถูกส่งไปที่ไหนนอกจาก <code>api.github.com</code></p>
-      <label>Repository (owner/name)
+      <label>Hub repository (ที่ agent รับงาน)
         <input id="in-repo" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="your-name/personal-ai-agent">
       </label>
       <label>Fine-grained token
@@ -55,10 +55,11 @@
         <summary>วิธีสร้าง token (ทำครั้งเดียว)</summary>
         <ol>
           <li>GitHub → Settings → Developer settings → <b>Fine-grained tokens</b> → Generate new token</li>
-          <li>Repository access: <b>Only select repositories</b> → เลือก repo ของ agent</li>
+          <li>Repository access: <b>Only select repositories</b> → เลือก hub repo และทุก repo ที่จะให้ agent ทำงาน</li>
           <li>Permissions: <b>Issues: Read and write</b>, Pull requests: Read, Actions: Read, Contents: Read</li>
           <li>ตั้งวันหมดอายุ (เช่น 90 วัน) แล้วคัดลอก token มาวางที่นี่</li>
         </ol>
+        <p>token นี้ใช้แค่ในหน้าเว็บ ส่วนการ push ไป repo อื่นใช้ secret <code>AGENT_GH_TOKEN</code> ของ hub แยกต่างหาก</p>
       </details>
       <div class="row">
         <button id="btn-save" class="primary">บันทึก</button>
@@ -69,21 +70,28 @@
 
     <!-- Task list -->
     <section id="view-tasks" class="view">
+      <div id="repo-filter" class="chips" role="group" aria-label="กรองตาม repo"></div>
       <div id="task-list" class="list"></div>
     </section>
 
-    <!-- Task detail -->
+    <!-- Conversation -->
     <section id="view-detail" class="view hidden">
       <button id="btn-back" class="link">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
         งานทั้งหมด
       </button>
       <div id="detail"></div>
-      <form id="form-followup" class="card">
-        <label>สั่งแก้เพิ่ม (จะ comment <code>/agent ...</code>)
-          <textarea id="in-followup" rows="3" required placeholder="เช่น เพิ่ม test กรณี list ว่าง"></textarea>
-        </label>
-        <button class="primary" type="submit">ส่งให้ agent ทำต่อ</button>
+      <form id="composer" class="composer">
+        <div class="seg" role="radiogroup" aria-label="โหมด">
+          <label><input type="radio" name="reply-mode" value="code" checked><span>แก้โค้ด</span></label>
+          <label><input type="radio" name="reply-mode" value="ask"><span>ถาม</span></label>
+        </div>
+        <div class="composer-row">
+          <textarea id="in-reply" rows="1" required placeholder="พิมพ์ข้อความถึง agent…" aria-label="ข้อความ"></textarea>
+          <button class="send" type="submit" aria-label="ส่ง">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg>
+          </button>
+        </div>
       </form>
     </section>
 
@@ -91,13 +99,26 @@
     <section id="view-new" class="view hidden">
       <h2>สั่งงานใหม่</h2>
       <form id="form-new" class="card">
+        <div class="grid-2">
+          <label>Repository
+            <select id="in-target"></select>
+          </label>
+          <label>Folder <span class="opt">(ไม่ใส่ = ทั้ง repo)</span>
+            <input id="in-folder" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="200" placeholder="backend/api">
+          </label>
+        </div>
+        <div class="field-label">โหมด</div>
+        <div class="seg wide" role="radiogroup" aria-label="โหมด">
+          <label><input type="radio" name="new-mode" value="code" checked><span>แก้โค้ด → เปิด PR</span></label>
+          <label><input type="radio" name="new-mode" value="ask"><span>ถามเรื่องโค้ด</span></label>
+        </div>
         <label>หัวข้อ
           <input id="in-title" required maxlength="200" placeholder="แก้ total_price ให้คูณ qty">
         </label>
         <label>รายละเอียด
-          <textarea id="in-body" rows="8" placeholder="ไฟล์ไหน, ผลที่ต้องการ, ข้อห้าม, ต้องมี test อะไรบ้าง"></textarea>
+          <textarea id="in-body" rows="7" placeholder="ไฟล์ไหน, ผลที่ต้องการ, ข้อห้าม, ต้องมี test อะไรบ้าง"></textarea>
         </label>
-        <p class="muted">ระบบจะสร้าง Issue พร้อม label <code>agent</code> แล้ว GitHub Actions จะเริ่มทำงาน (ใช้เวลาประมาณ 5–30 นาที)</p>
+        <p class="muted">สร้างเป็น Issue ใน hub แล้ว GitHub Actions จะเริ่มทำงาน (ประมาณ 5–30 นาที) สั่งได้หลายงานพร้อมกัน แต่ละงานรันแยกกัน</p>
         <button class="primary" type="submit">สั่งงาน</button>
       </form>
     </section>
