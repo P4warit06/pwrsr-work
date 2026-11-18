@@ -127,7 +127,7 @@ async function loadTasks() {
       return el(
         "button",
         { class: "card", onclick: () => openDetail(issue.number) },
-        el("div", { class: "card-title" }, `#${issue.number} ${issue.title}`),
+        el("div", { class: "card-title" }, el("span", { class: "num" }, `#${issue.number}`), issue.title),
         el(
           "div",
           { class: "meta" },
@@ -155,7 +155,7 @@ async function openDetail(number) {
   const pr = pulls[0];
   const parts = [
     el("div", { class: "card" },
-      el("div", { class: "card-title" }, `#${issue.number} ${issue.title}`),
+      el("div", { class: "card-title" }, el("span", { class: "num" }, `#${issue.number}`), issue.title),
       el("div", { class: "meta" }, pill(st.kind, st.text), safeLink(issue.html_url, "เปิดใน GitHub")),
       issue.body ? el("div", { class: "text-block mt" }, issue.body) : null,
     ),
@@ -171,7 +171,7 @@ async function openDetail(number) {
           safeLink(pr.html_url, "ตรวจ / Merge ใน GitHub"),
         ),
         el("div", { class: "muted mt" }, `${files.length} ไฟล์ที่เปลี่ยน`),
-        ...files.map((f) => [el("div", { class: "section-title" }, `${f.status}: ${f.filename}`), renderDiff(f.patch)]),
+        ...files.map((f) => [el("div", { class: "file-name" }, `${f.status} · ${f.filename}  +${f.additions} −${f.deletions}`), renderDiff(f.patch)]),
       ),
     );
   }
@@ -220,7 +220,11 @@ async function loadRuns() {
 async function guarded(fn, button) {
   banner("");
   if (button) button.disabled = true;
-  try { await fn(); } catch (err) { banner(err.message || String(err), true); } finally { if (button) button.disabled = false; }
+  $("btn-refresh").classList.add("spinning");
+  try { await fn(); } catch (err) { banner(err.message || String(err), true); } finally {
+    if (button) button.disabled = false;
+    $("btn-refresh").classList.remove("spinning");
+  }
 }
 
 function refresh() {
