@@ -20,20 +20,30 @@ const store = {
   del(key) { try { localStorage.removeItem(key); } catch { /* ignore */ } },
 };
 const cfg = () => ({ repo: store.get(KEY_REPO), token: store.get(KEY_TOKEN) });
-const configured = () => { const c = cfg(); return Boolean(c.repo && c.token); };
+// GitHub tokens are ASCII letters, digits and "_". Anything else (masking dots,
+// spaces, Thai text) would make fetch() throw "Type error" before sending.
+const TOKEN_RE = /^[A-Za-z0-9_]{20,255}$/;
+const cleanToken = (t) => String(t || "").replace(/[\s\u200b-\u200d\ufeff•]/g, "");
+const configured = () => { const c = cfg(); return Boolean(c.repo && TOKEN_RE.test(c.token)); };
 
 // -------------------------------------------------------------------- api
 async function gh(path, options = {}) {
   const { token } = cfg();
-  const res = await fetch(API + path, {
-    ...options,
-    headers: {
-      Accept: "application/vnd.github+json",
-      Authorization: `Bearer ${token}`,
-      "X-GitHub-Api-Version": "2022-11-28",
-      ...(options.body ? { "Content-Type": "application/json" } : {}),
-    },
-  });
+  if (!TOKEN_RE.test(token)) throw new Error("token ที่บันทึกไว้มีตัวอักษรที่ไม่ถูกต้อง ให้ไปที่ ⚙ แล้ววาง token ใหม่");
+  let res;
+  try {
+    res = await fetch(API + path, {
+      ...options,
+      headers: {
+        Accept: "application/vnd.github+json",
+        Authorization: `Bearer ${token}`,
+        "X-GitHub-Api-Version": "2022-11-28",
+        ...(options.body ? { "Content-Type": "application/json" } : {}),
+      },
+    });
+  } catch {
+    throw new Error("เชื่อมต่อ GitHub ไม่ได้ ตรวจอินเทอร์เน็ต หรือวาง token ใหม่ที่ ⚙");
+  }
   if (res.status === 401) throw new Error("Token ไม่ถูกต้องหรือหมดอายุ ให้ไปที่ ⚙ แล้วใส่ token ใหม่");
   if (res.status === 403 || res.status === 404) {
     throw new Error(`ไม่มีสิทธิ์เข้าถึงหรือไม่พบข้อมูล (${res.status}) ให้ตรวจชื่อ repo และ permission ของ token`);
@@ -389,7 +399,11 @@ function refresh() {
 
 function init() {
   $("in-repo").value = store.get(KEY_REPO);
-  $("in-token").value = store.get(KEY_TOKEN) ? "••••••••" : "";
+  const showSaved = () => {
+    $("in-token").value = "";
+    $("in-token").placeholder = store.get(KEY_TOKEN) ? "บันทึกแล้ว · วาง token ใหม่เพื่อเปลี่ยน" : "github_pat_...";
+  };
+  showSaved();
 
   document.querySelectorAll(".tab").forEach((t) =>
     t.addEventListener("click", () => { show(t.dataset.view); refresh(); }),
@@ -400,20 +414,23 @@ function init() {
 
   $("btn-save").addEventListener("click", () => {
     const repo = $("in-repo").value.trim();
-    const token = $("in-token").value.trim();
+    const token = cleanToken($("in-token").value);
     if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) { banner("รูปแบบ repo ต้องเป็น owner/name", true); return; }
     store.set(KEY_REPO, repo);
     repoOptions = null;
-    if (token && token !== "••••••••") store.set(KEY_TOKEN, token);
-    if (!store.get(KEY_TOKEN)) { banner("ยังไม่ได้ใส่ token", true); return; }
-    $("in-token").value = "••••••••";
+    if (token) {
+      if (!TOKEN_RE.test(token)) { banner("token ไม่ถูกต้อง ต้องขึ้นต้นด้วย github_pat_ และมีแค่ตัวอักษรอังกฤษ ตัวเลข และ _", true); return; }
+      store.set(KEY_TOKEN, token);
+    }
+    if (!TOKEN_RE.test(store.get(KEY_TOKEN))) { banner("ยังไม่ได้ใส่ token", true); return; }
+    showSaved();
     banner("บันทึกแล้ว");
     show("tasks");
     refresh();
   });
   $("btn-forget").addEventListener("click", () => {
     store.del(KEY_TOKEN);
-    $("in-token").value = "";
+    showSaved();
     banner("ลบ token ออกจากเครื่องนี้แล้ว");
   });
 
